@@ -1,0 +1,23 @@
+{
+  "policies": {
+    "DisableTelemetry": true,
+    "DisablePocket": true,
+    "DisableFirefoxStudies": true,
+    "DisableFirefoxAccounts": false,
+    "OverrideFirstRunPage": "",
+    "SearchEngines": {
+      "Default": "DuckDuckGo"
+    },
+    "ExtensionSettings": {
+      "hydra-shield@camoufox-hydra": {
+        "installation_mode": "force_installed",
+        "install_url": "file:///app/distribution/extensions/hydra-shield@camoufox-hydra.xpi"
+      }
+    },
+    "Bookmarks": [],
+    "EnableTrackingProtection": {
+      "Value": true,
+      "Fingerprinting": false
+    }
+  }
+}

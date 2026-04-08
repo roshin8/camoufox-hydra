@@ -1,0 +1,39 @@
+# Firefox source tree and tarball
+firefox-src/
+firefox-*.source.tar.xz
+
+# Build artifacts
+obj-*/
+dist/
+*.dmg
+*.app
+*.xpi
+
+# Extension build
+extension/dist/
+extension/node_modules/
+extension/.vite/
+
+# Upstream references (temp clones)
+upstream-settings/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
+# Python
+__pycache__/
+*.pyc
+
+# Claude Code local settings
+.claude/

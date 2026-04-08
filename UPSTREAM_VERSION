@@ -1,0 +1,6 @@
+# Camoufox upstream version
+# Update this when rebasing on a new Camoufox release
+CAMOUFOX_REPO=https://github.com/daijro/camoufox
+CAMOUFOX_TAG=v135.0.1-beta.24
+# Note: upstream main is now at 146.0.1/beta.25, but we pin to the latest release
+FIREFOX_VERSION=135.0.1
