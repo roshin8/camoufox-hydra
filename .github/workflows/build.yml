@@ -1,0 +1,167 @@
+name: Build Camoufox Hydra
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        target: [macos]
+        arch: [arm64]
+
+    steps:
+      - name: Maximize build space
+        uses: AdityaGarg8/remove-unwanted-software@v4.1
+        with:
+          remove-dotnet: "true"
+          remove-android: "true"
+          remove-haskell: "true"
+          remove-codeql: "true"
+          remove-docker-images: "true"
+          remove-cached-tools: "true"
+          remove-swapfile: "true"
+          verbose: "false"
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Set up LLVM 18
+        run: |
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh 18
+          sudo apt-get install -y lld-18 clang-18
+          sudo update-alternatives --install /usr/bin/ld.lld ld.lld /usr/bin/ld.lld-18 100
+
+      - name: Install Rust
+        run: |
+          curl https://sh.rustup.rs -sSf | bash -s -- -y
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+          rustup target add aarch64-apple-darwin
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y msitools p7zip-full aria2 nasm
+
+      - name: Fetch Firefox source
+        run: make fetch
+
+      - name: Setup source
+        run: make setup
+
+      - name: Fix mach logging bug
+        run: |
+          python3 -c "
+          content = open('firefox-src/python/mach/mach/logging.py').read()
+          old = '        formatted_msg = record.msg.format(**getattr(record, \"params\", {}))'
+          new = '        try:\n            formatted_msg = record.msg.format(**getattr(record, \"params\", {}))\n        except (KeyError, ValueError, IndexError):\n            formatted_msg = record.msg'
+          content = content.replace(old, new)
+          open('firefox-src/python/mach/mach/logging.py', 'w').write(content)
+          "
+
+      - name: Bootstrap build environment
+        run: |
+          cd firefox-src
+          MOZBUILD_STATE_PATH=$HOME/.mozbuild ./mach --no-interactive bootstrap --application-choice=browser
+
+      - name: Apply patches
+        run: make patch
+
+      - name: Copy additions and config
+        run: |
+          make additions
+          make config
+
+      - name: Configure for macOS ARM cross-compilation
+        run: |
+          cd firefox-src
+          cat > mozconfig << 'MOZEOF'
+          ac_add_options --enable-application=browser
+          ac_add_options --allow-addon-sideload
+          ac_add_options --disable-crashreporter
+          ac_add_options --disable-backgroundtasks
+          ac_add_options --disable-debug
+          ac_add_options --disable-default-browser-agent
+          ac_add_options --disable-tests
+          ac_add_options --disable-updater
+          ac_add_options --enable-release
+          ac_add_options --disable-system-policies
+          ac_add_options --with-app-name=camoufox
+          ac_add_options --with-branding=browser/branding/camoufox
+          ac_add_options --with-unsigned-addon-scopes=app,system
+          ac_add_options --enable-bootstrap
+          ac_add_options --target=aarch64-apple-darwin
+          ac_add_options --without-wasm-sandboxed-libraries
+          export MOZ_REQUIRE_SIGNING=
+          mk_add_options MOZ_CRASHREPORTER=0
+          mk_add_options MOZ_DATA_REPORTING=0
+          mk_add_options MOZ_SERVICES_HEALTHREPORT=0
+          mk_add_options MOZ_TELEMETRY_REPORTING=0
+          mk_add_options MOZ_INSTALLER=0
+          mk_add_options MOZ_AUTOMATION_INSTALLER=0
+          MOZEOF
+
+      - name: Build extension
+        run: make extension
+
+      - name: Create swap space
+        run: |
+          sudo fallocate -l 16G /swapfile
+          sudo chmod 600 /swapfile
+          sudo mkswap /swapfile
+          sudo swapon /swapfile
+
+      - name: Build Firefox
+        run: cd firefox-src && ./mach build
+
+      - name: Package
+        run: |
+          mkdir -p dist
+          cd firefox-src
+          ./mach package || true
+          cp -r obj-*/dist/*.dmg ../dist/ 2>/dev/null || cp -r obj-*/dist/camoufox ../dist/ 2>/dev/null || true
+          ls -la obj-*/dist/
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: camoufox-hydra-${{ matrix.target }}-${{ matrix.arch }}
+          path: dist/*
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: artifacts/**/*
+          generate_release_notes: true
+          draft: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

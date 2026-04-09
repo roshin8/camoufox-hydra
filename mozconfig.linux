@@ -17,6 +17,11 @@ ac_add_options --with-branding=browser/branding/camoufox
 
 ac_add_options --with-unsigned-addon-scopes=app,system
 
+# Use system clang/lld (no bootstrap needed)
+CC=clang
+CXX=clang++
+ac_add_options --disable-bootstrap
+
 export MOZ_REQUIRE_SIGNING=
 
 mk_add_options MOZ_CRASHREPORTER=0
@@ -26,9 +31,4 @@ mk_add_options MOZ_TELEMETRY_REPORTING=0
 mk_add_options MOZ_INSTALLER=0
 mk_add_options MOZ_AUTOMATION_INSTALLER=0
 
-# Limit parallelism to avoid OOM in Docker
 mk_add_options MOZ_MAKE_FLAGS="-j2"
-
-# Reduce Rust memory usage
-export CARGO_BUILD_JOBS=2
-export RUSTFLAGS="-C codegen-units=1"

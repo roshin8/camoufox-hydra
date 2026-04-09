@@ -5,9 +5,9 @@ ENV MOZBUILD_STATE_PATH=/root/.mozbuild
 
 WORKDIR /app
 
-# All build dependencies — replaces mach bootstrap
+# All build dependencies
 RUN apt-get update && apt-get install -y \
-    build-essential make clang lld llvm pkg-config m4 \
+    build-essential make clang-18 lld-18 llvm-18 pkg-config m4 \
     wget curl git mercurial \
     python3 python3-dev python3-pip python3-venv \
     nasm yasm cbindgen \
@@ -18,6 +18,9 @@ RUN apt-get update && apt-get install -y \
     libsqlite3-dev nodejs npm \
     ca-certificates \
     && update-ca-certificates \
+    && update-alternatives --install /usr/bin/clang clang /usr/bin/clang-18 100 \
+    && update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-18 100 \
+    && update-alternatives --install /usr/bin/ld.lld ld.lld /usr/bin/ld.lld-18 100 \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Rust
@@ -34,7 +37,7 @@ COPY . /app
 # Fetch and extract Firefox source
 RUN make fetch && make setup
 
-# Fix mach logging bug (curly braces in file paths crash Python format())
+# Fix mach logging bug
 RUN python3 -c "\
 content = open('firefox-src/python/mach/mach/logging.py').read(); \
 old = '        formatted_msg = record.msg.format(**getattr(record, \"params\", {}))'; \
@@ -45,18 +48,11 @@ open('firefox-src/python/mach/mach/logging.py', 'w').write(content)"
 # Apply patches, additions, and config
 RUN make patch && make additions && make config
 
-# Fix mozconfig for Docker:
-# - Disable bootstrap (can't download Mozilla toolchains for patched forks)
-# - Fix target arch to match container
-# - Disable WASI sandboxed libraries (avoids missing wasi-sysroot headers)
-RUN cd firefox-src && \
-    sed -i 's/--enable-bootstrap/--disable-bootstrap/' mozconfig && \
-    sed -i "s/--target=x86_64-pc-linux-gnu/--target=$(uname -m)-unknown-linux-gnu/" mozconfig && \
-    printf '\nac_add_options --without-wasm-sandboxed-libraries\n' >> mozconfig
+# Override mozconfig for Linux Docker build
+RUN cp mozconfig.linux firefox-src/mozconfig
 
 # Build extension
 RUN make extension
 
-# Build at runtime to avoid Docker BuildKit OOM on Rust LTO link
-# CARGO_BUILD_JOBS=1 prevents the ~8GB Rust LTO link from running in parallel
+# Build at runtime to avoid Docker BuildKit OOM
 CMD ["bash", "-c", "cd firefox-src && MOZ_MAKE_FLAGS='-j2' CARGO_BUILD_JOBS=1 ./mach build && echo '=== BUILD SUCCEEDED ===' && cp -r obj-*/dist/bin/* /app/dist/ && echo 'Output copied to /app/dist/'"]
