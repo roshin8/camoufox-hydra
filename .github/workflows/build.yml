@@ -50,59 +50,27 @@ jobs:
           curl https://sh.rustup.rs -sSf | bash -s -- -y
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
-      - name: Install build dependencies
+      - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y msitools p7zip-full aria2 nasm
 
-      - name: Fetch Firefox source
+      # Matches Camoufox: fetch, setup-minimal, mozbootstrap
+      - name: Fetch source
         run: make fetch
 
-      # Matches Camoufox's setup-minimal: extract, copy additions, NO git init
-      - name: Setup source (Camoufox setup-minimal flow)
-        run: |
-          mkdir -p firefox-src
-          tar -xJf firefox-146.0.1.source.tar.xz -C firefox-src --strip-components=1
-          cp -r additions/* firefox-src/
+      - name: Setup source
+        run: make setup-minimal
 
       - name: Bootstrap build environment
-        run: |
-          cd firefox-src
-          MOZBUILD_STATE_PATH=$HOME/.mozbuild ./mach --no-interactive bootstrap --application-choice=browser
+        run: make mozbootstrap
 
-      - name: Fix mach logging bug
-        run: |
-          python3 -c "
-          content = open('firefox-src/python/mach/mach/logging.py').read()
-          old = '        formatted_msg = record.msg.format(**getattr(record, \"params\", {}))'
-          new = '        try:\n            formatted_msg = record.msg.format(**getattr(record, \"params\", {}))\n        except (KeyError, ValueError, IndexError):\n            formatted_msg = record.msg'
-          content = content.replace(old, new)
-          open('firefox-src/python/mach/mach/logging.py', 'w').write(content)
-          "
-
-      # Apply patches using patch -p1 (same as Camoufox's patch.py)
-      - name: Apply patches
-        run: |
-          cd firefox-src
-          for p in $(find ../patches/infra ../patches/fingerprint -name '*.patch' | sort -t/ -k4); do
-            echo "Applying: $p"
-            patch -p1 -i "$p"
-          done
-
-      - name: Copy config
-        run: |
-          mkdir -p firefox-src/distribution
-          cp config/policies.json firefox-src/distribution/policies.json
-          mkdir -p firefox-src/lw
-          cp config/hydra.cfg firefox-src/lw/camoufox.cfg
-          cp config/policies.json firefox-src/lw/policies.json
-          cp config/local-settings.js firefox-src/lw/local-settings.js
-          cp config/chrome.css firefox-src/lw/chrome.css
-          cp config/properties.json firefox-src/lw/properties.json
-          cp mozconfig.linux firefox-src/mozconfig
+      # Fix mach logging bug then apply patches
+      - name: Prepare and patch
+        run: make dir
 
       - name: Build extension
-        run: cd extension && npm ci && npm run build:prod
+        run: make extension
 
       - name: Create swap space
         run: |
@@ -112,13 +80,12 @@ jobs:
           sudo swapon /swapfile
 
       - name: Build Firefox
-        run: cd firefox-src && ./mach build
+        run: make build
 
       - name: Verify build
         run: |
           ls -la firefox-src/obj-*/dist/bin/camoufox* || true
-          echo "=== Checking C++ APIs ==="
-          grep "setCanvasSeed" firefox-src/dom/webidl/Window.webidl && echo "FOUND" || echo "NOT FOUND"
+          grep "setCanvasSeed" firefox-src/dom/webidl/Window.webidl && echo "C++ API: FOUND" || echo "C++ API: NOT FOUND"
 
       - name: Package
         run: |

@@ -1,19 +1,17 @@
 #!/bin/bash
 
-# Simple bash script that copies the additions from the repository into the source directory
-# Must be ran from within the source directory
+# Copies additions and settings into the Firefox source directory.
+# Must be run from within the source directory.
+# Matches Camoufox's copy-additions.sh flow.
 
-# Check if correct number of arguments are provided
 if [ "$#" -ne 2 ]; then
     echo "Usage: $0 <version> <release>"
     exit 1
 fi
 
-# Assign command-line arguments to variables
 version="$1"
 release="$2"
 
-# Function to run commands and exit on failure
 run() {
     echo "$ $1"
     eval "$1"
@@ -23,30 +21,26 @@ run() {
     fi
 }
 
-# Copy the search-config.json file
-run 'cp -v ../assets/search-config.json services/settings/dumps/main/search-config.json'
-
-# vs_pack.py issue... should be temporary
-run 'cp -v ../patches/librewolf/pack_vs.py build/vs/'
-
-# Apply most recent `settings` repository files
+# Copy settings into lw/ directory
 run 'mkdir -p lw'
 pushd lw > /dev/null
-run 'cp -v ../../settings/camoufox.cfg .'
-run 'cp -v ../../settings/distribution/policies.json .'
-run 'cp -v ../../settings/defaults/pref/local-settings.js .'
-run 'cp -v ../../settings/chrome.css .'
-run 'cp -v ../../settings/properties.json .'
+run 'cp -v ../../settings/hydra.cfg camoufox.cfg'
+[ -f ../../settings/policies.json ] && run 'cp -v ../../settings/policies.json .'
+[ -f ../../settings/local-settings.js ] && run 'cp -v ../../settings/local-settings.js .'
+[ -f ../../settings/chrome.css ] && run 'cp -v ../../settings/chrome.css .'
+[ -f ../../settings/properties.json ] && run 'cp -v ../../settings/properties.json .'
 run 'touch moz.build'
 popd > /dev/null
 
-# Copy ALL new files/folders from ../additions to .
-run 'cp -r ../additions/* .'
+# Copy librewolf pack_vs.py (referenced by build system)
+run 'cp -v ../patches/librewolf/pack_vs.py build/vs/' || true
 
-# Provide a script that fetches and bootstraps Nightly and some mozconfigs
-run 'cp -v ../scripts/mozfetch.sh lw/'
+# Copy ALL new files/folders from additions to source
+run 'cp -r ../additions/* .'
 
 # Override the firefox version
 for file in "browser/config/version.txt" "browser/config/version_display.txt"; do
     echo "${version}-${release}" > "$file"
 done
+
+echo "Additions and settings copied successfully."

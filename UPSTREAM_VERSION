@@ -1,4 +1,0 @@
-# Camoufox upstream version — matches daijro/camoufox main branch
-CAMOUFOX_REPO=https://github.com/daijro/camoufox
-CAMOUFOX_TAG=main
-FIREFOX_VERSION=146.0.1

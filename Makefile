@@ -1,111 +1,111 @@
-SHELL := /bin/bash
+include upstream.sh
+export
 
-# Versions — sourced from UPSTREAM_VERSION
-include UPSTREAM_VERSION
+cf_source_dir := firefox-src
+ff_source_tarball := firefox-$(version).source.tar.xz
 
-FIREFOX_SRC := firefox-src
-FF_TARBALL := firefox-$(FIREFOX_VERSION).source.tar.xz
-EXTENSION_DIR := extension
-DIST_DIR := $(FIREFOX_SRC)/distribution
-
-.PHONY: all fetch setup patch config additions extension build package run \
-        clean distclean help
-
-all: fetch setup patch additions config extension build
+.PHONY: help fetch setup setup-minimal clean distclean build package \
+        patch unpatch dir run mozbootstrap bootstrap extension
 
 help:
 	@echo "Camoufox Hydra Build System"
 	@echo ""
-	@echo "  Native build (requires toolchain):"
-	@echo "    make fetch      Download Firefox source tarball"
-	@echo "    make setup      Extract tarball and init git repo"
-	@echo "    make patch      Apply C++ patches"
-	@echo "    make additions  Copy Camoufox additions (MaskConfig, branding)"
-	@echo "    make config     Copy Hydra config (policies, prefs, mozconfig)"
-	@echo "    make extension  Build Hydra Shield extension"
-	@echo "    make build      Compile Firefox (45-90 min on Apple Silicon)"
-	@echo "    make package    Create macOS DMG"
-	@echo "    make run        Launch the built browser"
-	@echo "    make all        Full pipeline (fetch → build)"
-	@echo ""
-	@echo "  Cleanup:"
-	@echo "    make clean      Remove build artifacts"
-	@echo "    make distclean  Remove everything including source"
+	@echo "  make fetch         Download Firefox source tarball"
+	@echo "  make setup-minimal Extract source and copy additions (for CI/Docker)"
+	@echo "  make setup         setup-minimal + git init (for development)"
+	@echo "  make mozbootstrap  Bootstrap mach build environment"
+	@echo "  make dir           Apply patches and prepare source"
+	@echo "  make extension     Build Hydra Shield extension"
+	@echo "  make build         Compile Firefox"
+	@echo "  make run           Launch the built browser"
+	@echo "  make clean         Remove build artifacts"
+	@echo "  make distclean     Remove everything including source"
 	@echo ""
 
-# Download Firefox source tarball
 fetch:
-	scripts/fetch-firefox.sh $(FIREFOX_VERSION)
+	scripts/fetch-firefox.sh $(version)
 
-# Extract tarball into firefox-src and init a git repo for patch management
-setup: $(FF_TARBALL)
-	@if [ -d $(FIREFOX_SRC) ]; then \
-		echo "$(FIREFOX_SRC) already exists. Run 'make distclean' to start fresh."; \
-		exit 0; \
+setup-minimal:
+	if [ ! -f $(ff_source_tarball) ]; then \
+		make fetch; \
 	fi
-	mkdir -p $(FIREFOX_SRC)
-	tar -xJf $(FF_TARBALL) -C $(FIREFOX_SRC) --strip-components=1
-	cd $(FIREFOX_SRC) && git init -b main && git add -f -A && git commit -m "Initial Firefox $(FIREFOX_VERSION)"
-	@echo "Firefox source ready at $(FIREFOX_SRC)"
+	rm -rf $(cf_source_dir)
+	mkdir -p $(cf_source_dir)
+	tar -xJf $(ff_source_tarball) -C $(cf_source_dir) --strip-components=1
+	cd $(cf_source_dir) && bash ../scripts/copy-additions.sh $(version) $(release)
 
-# Apply all C++ patches (infra first, then fingerprint, then hydra)
-patch: $(FIREFOX_SRC)
-	scripts/apply-patches.sh $(FIREFOX_SRC)
+setup: setup-minimal
+	cd $(cf_source_dir) && \
+		git init -b main && \
+		git add -f -A && \
+		git commit -m "Initial commit" && \
+		git tag -a unpatched -m "Initial commit"
 
-# Copy Camoufox additions into source tree (MaskConfig, branding, etc.)
-additions: $(FIREFOX_SRC)
-	cp -r additions/* $(FIREFOX_SRC)/
-	@echo "Additions copied into $(FIREFOX_SRC)"
+mozbootstrap:
+	cd $(cf_source_dir) && MOZBUILD_STATE_PATH=$$HOME/.mozbuild ./mach --no-interactive bootstrap --application-choice=browser
 
-# Copy Hydra-specific config files into Firefox source tree
-# The lw/ directory is referenced by config.patch's moz.build and needs all these files
-config: $(FIREFOX_SRC)
-	mkdir -p $(DIST_DIR)
-	cp config/policies.json $(DIST_DIR)/policies.json
-	mkdir -p $(FIREFOX_SRC)/lw
-	cp config/hydra.cfg $(FIREFOX_SRC)/lw/camoufox.cfg
-	cp config/policies.json $(FIREFOX_SRC)/lw/policies.json
-	cp config/local-settings.js $(FIREFOX_SRC)/lw/local-settings.js
-	cp config/chrome.css $(FIREFOX_SRC)/lw/chrome.css
-	cp config/properties.json $(FIREFOX_SRC)/lw/properties.json
-	cp mozconfig $(FIREFOX_SRC)/mozconfig
+bootstrap: dir
+	make mozbootstrap
 
-# Build and bundle the Hydra Shield extension
+dir:
+	@if [ ! -d $(cf_source_dir) ]; then \
+		make setup; \
+	fi
+	# Fix mach logging bug
+	python3 scripts/fix-mach-logging.py $(cf_source_dir)
+	# Apply all patches
+	cd $(cf_source_dir) && \
+		for p in $$(find ../patches -maxdepth 1 -name '*.patch' | sort); do \
+			echo "Applying: $$p"; \
+			patch -p1 -i "$$p"; \
+		done
+	# Copy config
+	mkdir -p $(cf_source_dir)/distribution
+	cp settings/policies.json $(cf_source_dir)/distribution/policies.json
+	mkdir -p $(cf_source_dir)/lw
+	cp settings/hydra.cfg $(cf_source_dir)/lw/camoufox.cfg
+	cp settings/policies.json $(cf_source_dir)/lw/policies.json
+	cp settings/local-settings.js $(cf_source_dir)/lw/local-settings.js
+	cp settings/chrome.css $(cf_source_dir)/lw/chrome.css
+	cp settings/properties.json $(cf_source_dir)/lw/properties.json
+	cp mozconfig.linux $(cf_source_dir)/mozconfig
+	touch $(cf_source_dir)/_READY
+
 extension:
-	cd $(EXTENSION_DIR) && npm ci && npm run build:prod
-	scripts/bundle-extension.sh $(FIREFOX_SRC)
+	cd extension && npm ci && npm run build:prod
 
-# Bootstrap build environment (first-time only)
-bootstrap: $(FIREFOX_SRC)
-	cd $(FIREFOX_SRC) && MOZBUILD_STATE_PATH=$$HOME/.mozbuild ./mach --no-interactive bootstrap --application-choice=browser
+build:
+	@if [ ! -f $(cf_source_dir)/_READY ]; then \
+		make dir; \
+	fi
+	cd $(cf_source_dir) && ./mach build
 
-# Compile Firefox with applied patches
-build: $(FIREFOX_SRC)
-	cd $(FIREFOX_SRC) && ./mach build
-
-# Launch the built browser
 run:
-	cd $(FIREFOX_SRC) && ./mach run
+	cd $(cf_source_dir) && ./mach run
 
-# Create macOS DMG
 package:
-	scripts/package-dmg.sh $(FIREFOX_SRC)
+	scripts/package-dmg.sh $(cf_source_dir)
 
-# Remove build artifacts (keeps source and patches)
 clean:
-	rm -rf $(FIREFOX_SRC)/obj-*
-	rm -rf $(EXTENSION_DIR)/dist
+	rm -rf $(cf_source_dir)/obj-*
+	rm -rf extension/dist
 	rm -f *.dmg
 
-# Full clean including Firefox source
 distclean: clean
-	rm -rf $(FIREFOX_SRC)
-	rm -rf $(EXTENSION_DIR)/node_modules
+	rm -rf $(cf_source_dir)
+	rm -rf extension/node_modules
+	rm -f $(ff_source_tarball)
 
-$(FF_TARBALL):
-	@echo "Firefox tarball not found. Run 'make fetch' first."
-	@exit 1
+patch:
+	@if [ -z "$(filter-out $@,$(MAKECMDGOALS))" ]; then \
+		echo "Usage: make patch ./patches/file.patch"; \
+		exit 1; \
+	fi
+	cd $(cf_source_dir) && patch -p1 -i ../$(filter-out $@,$(MAKECMDGOALS))
 
-$(FIREFOX_SRC):
-	@echo "Firefox source not found. Run 'make fetch && make setup' first."
-	@exit 1
+unpatch:
+	@if [ -z "$(filter-out $@,$(MAKECMDGOALS))" ]; then \
+		echo "Usage: make unpatch ./patches/file.patch"; \
+		exit 1; \
+	fi
+	cd $(cf_source_dir) && patch -p1 -R -i ../$(filter-out $@,$(MAKECMDGOALS))
