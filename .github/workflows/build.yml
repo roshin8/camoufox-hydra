@@ -43,8 +43,6 @@ jobs:
           chmod +x llvm.sh
           sudo ./llvm.sh 18
           sudo apt-get install -y lld-18 clang-18
-          sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-18 100
-          sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-18 100
           sudo update-alternatives --install /usr/bin/ld.lld ld.lld /usr/bin/ld.lld-18 100
 
       - name: Install Rust
@@ -55,21 +53,20 @@ jobs:
       - name: Install build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y msitools p7zip-full aria2 nasm cbindgen \
-            libstdc++-14-dev libgtk-3-dev libdbus-glib-1-dev \
-            libpulse-dev libasound2-dev libx11-xcb-dev libxt-dev \
-            libxrandr-dev libxcomposite-dev libxdamage-dev
-
-      - name: Set up git identity
-        run: |
-          git config --global user.email "ci@camoufox-hydra"
-          git config --global user.name "Camoufox Hydra CI"
+          sudo apt-get install -y msitools p7zip-full aria2 nasm
 
       - name: Fetch Firefox source
         run: make fetch
 
-      - name: Setup source
-        run: make setup
+      - name: Extract source (no git — matches Camoufox setup-minimal)
+        run: |
+          mkdir -p firefox-src
+          tar -xJf firefox-135.0.1.source.tar.xz -C firefox-src --strip-components=1
+
+      - name: Bootstrap build environment
+        run: |
+          cd firefox-src
+          MOZBUILD_STATE_PATH=$HOME/.mozbuild ./mach --no-interactive bootstrap --application-choice=browser
 
       - name: Fix mach logging bug
         run: |
@@ -82,18 +79,24 @@ jobs:
           "
 
       - name: Apply patches
-        run: make patch
+        run: scripts/apply-patches.sh firefox-src
 
       - name: Copy additions and config
         run: |
-          make additions
-          make config
-
-      - name: Write Linux mozconfig
-        run: cp mozconfig.linux firefox-src/mozconfig
+          cp -r additions/* firefox-src/
+          mkdir -p firefox-src/distribution
+          cp config/policies.json firefox-src/distribution/policies.json
+          mkdir -p firefox-src/lw
+          cp config/hydra.cfg firefox-src/lw/camoufox.cfg
+          cp config/policies.json firefox-src/lw/policies.json
+          cp config/local-settings.js firefox-src/lw/local-settings.js
+          cp config/chrome.css firefox-src/lw/chrome.css
+          cp config/properties.json firefox-src/lw/properties.json
+          cp mozconfig.linux firefox-src/mozconfig
 
       - name: Build extension
-        run: make extension
+        run: |
+          cd extension && npm ci && npm run build:prod
 
       - name: Create swap space
         run: |
@@ -109,7 +112,7 @@ jobs:
         run: |
           ls -la firefox-src/obj-*/dist/bin/camoufox* || true
           echo "=== Checking C++ APIs ==="
-          grep "setCanvasSeed" firefox-src/dom/webidl/Window.webidl || echo "setCanvasSeed not in WebIDL"
+          grep "setCanvasSeed" firefox-src/dom/webidl/Window.webidl && echo "setCanvasSeed FOUND" || echo "setCanvasSeed NOT FOUND"
 
       - name: Package
         run: |
