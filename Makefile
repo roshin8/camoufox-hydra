@@ -8,10 +8,8 @@ FF_TARBALL := firefox-$(FIREFOX_VERSION).source.tar.xz
 EXTENSION_DIR := extension
 DIST_DIR := $(FIREFOX_SRC)/distribution
 
-DOCKER_IMAGE := camoufox-hydra
-
 .PHONY: all fetch setup patch config additions extension build package run \
-        docker docker-build docker-shell clean distclean help
+        clean distclean help
 
 all: fetch setup patch additions config extension build
 
@@ -29,10 +27,6 @@ help:
 	@echo "    make package    Create macOS DMG"
 	@echo "    make run        Launch the built browser"
 	@echo "    make all        Full pipeline (fetch → build)"
-	@echo ""
-	@echo "  Docker build (recommended, no local toolchain needed):"
-	@echo "    make docker       Full build in Docker container"
-	@echo "    make docker-shell Open shell in build container"
 	@echo ""
 	@echo "  Cleanup:"
 	@echo "    make clean      Remove build artifacts"
@@ -107,21 +101,6 @@ clean:
 distclean: clean
 	rm -rf $(FIREFOX_SRC)
 	rm -rf $(EXTENSION_DIR)/node_modules
-
-# === Docker Build ===
-
-# Build Docker image (patches applied, extension built, ready to compile)
-docker-image:
-	docker build -t $(DOCKER_IMAGE) .
-
-# Full build inside Docker container (compile Firefox + copy output)
-docker: docker-image
-	mkdir -p dist
-	docker run --rm -v $(PWD)/dist:/app/dist $(DOCKER_IMAGE)
-
-# Interactive shell inside build container (for debugging)
-docker-shell: docker-image
-	docker run --rm -it -v $(PWD)/dist:/app/dist $(DOCKER_IMAGE) bash
 
 $(FF_TARBALL):
 	@echo "Firefox tarball not found. Run 'make fetch' first."

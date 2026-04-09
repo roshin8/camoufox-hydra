@@ -1,5 +1,0 @@
-firefox-src/
-.git/
-*.dmg
-extension/node_modules/
-extension/dist/
