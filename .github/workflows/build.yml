@@ -58,7 +58,8 @@ jobs:
       - name: Fetch Firefox source
         run: make fetch
 
-      - name: Extract source (no git init — matches Camoufox setup-minimal)
+      # Matches Camoufox's setup-minimal: extract, copy additions, NO git init
+      - name: Setup source (Camoufox setup-minimal flow)
         run: |
           mkdir -p firefox-src
           tar -xJf firefox-146.0.1.source.tar.xz -C firefox-src --strip-components=1
@@ -79,8 +80,14 @@ jobs:
           open('firefox-src/python/mach/mach/logging.py', 'w').write(content)
           "
 
+      # Apply patches using patch -p1 (same as Camoufox's patch.py)
       - name: Apply patches
-        run: scripts/apply-patches.sh firefox-src
+        run: |
+          cd firefox-src
+          for p in $(find ../patches/infra ../patches/fingerprint -name '*.patch' | sort -t/ -k4); do
+            echo "Applying: $p"
+            patch -p1 -i "$p"
+          done
 
       - name: Copy config
         run: |

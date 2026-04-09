@@ -91,7 +91,7 @@ echo "Patches applied: $APPLIED"
 if [[ $FAILED -gt 0 ]]; then
     echo "Patches FAILED: $FAILED"
     echo -e "$FAILED_LIST"
-    echo "WARNING: Failed patches may need manual adjustment for this Firefox version."
-    echo "Continuing build — failed patches are non-critical."
+    echo "Failed patches need manual adjustment for this Firefox version."
+    exit 1
 fi
-echo "Patches complete: $APPLIED applied, $FAILED failed."
+echo "All patches applied successfully."
