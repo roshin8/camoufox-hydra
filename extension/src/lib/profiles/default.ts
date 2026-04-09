@@ -4,11 +4,11 @@ import type { AssignedProfile } from '@/types';
 export const DEFAULT_PROFILE: AssignedProfile = {
   userAgent: {
     userAgent:
-      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Firefox/135.0',
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Firefox/146.0',
     platform: 'MacIntel',
     oscpu: 'Intel Mac OS X 10.15',
     appVersion:
-      '5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Firefox/135.0',
+      '5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Firefox/146.0',
   },
   screen: {
     width: 1920,

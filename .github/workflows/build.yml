@@ -58,18 +58,16 @@ jobs:
       - name: Fetch Firefox source
         run: make fetch
 
-      - name: Extract source and copy additions (matches Camoufox setup-minimal)
+      - name: Extract source (no git init — matches Camoufox setup-minimal)
         run: |
           mkdir -p firefox-src
-          tar -xJf firefox-135.0.1.source.tar.xz -C firefox-src --strip-components=1
-          # Copy additions into source BEFORE bootstrap (like Camoufox's copy-additions.sh)
+          tar -xJf firefox-146.0.1.source.tar.xz -C firefox-src --strip-components=1
           cp -r additions/* firefox-src/
 
       - name: Bootstrap build environment
         run: |
           cd firefox-src
-          MOZBUILD_STATE_PATH=$HOME/.mozbuild ./mach --no-interactive bootstrap --application-choice=browser || true
-          echo "Bootstrap exit code: $? (continuing regardless — we have system LLVM 18)"
+          MOZBUILD_STATE_PATH=$HOME/.mozbuild ./mach --no-interactive bootstrap --application-choice=browser
 
       - name: Fix mach logging bug
         run: |
