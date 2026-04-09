@@ -53,22 +53,14 @@ dir:
 	fi
 	# Fix mach logging bug
 	python3 scripts/fix-mach-logging.py $(cf_source_dir)
-	# Apply all patches
+	# Copy base mozconfig and set target
+	cd $(cf_source_dir) && cp -v ../assets/base.mozconfig mozconfig
+	# Apply all patches (sorted by basename, like Camoufox's list_patches)
 	cd $(cf_source_dir) && \
-		for p in $$(find ../patches -maxdepth 1 -name '*.patch' | sort); do \
+		for p in $$(find ../patches -maxdepth 1 -name '*.patch' | sort -t/ -k3); do \
 			echo "Applying: $$p"; \
 			patch -p1 -i "$$p"; \
 		done
-	# Copy config
-	mkdir -p $(cf_source_dir)/distribution
-	cp settings/policies.json $(cf_source_dir)/distribution/policies.json
-	mkdir -p $(cf_source_dir)/lw
-	cp settings/hydra.cfg $(cf_source_dir)/lw/camoufox.cfg
-	cp settings/policies.json $(cf_source_dir)/lw/policies.json
-	cp settings/local-settings.js $(cf_source_dir)/lw/local-settings.js
-	cp settings/chrome.css $(cf_source_dir)/lw/chrome.css
-	cp settings/properties.json $(cf_source_dir)/lw/properties.json
-	cp mozconfig.linux $(cf_source_dir)/mozconfig
 	touch $(cf_source_dir)/_READY
 
 extension:
