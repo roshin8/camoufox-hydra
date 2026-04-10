@@ -77,6 +77,9 @@ jobs:
       - name: Set up sccache
         uses: Mozilla-Actions/sccache-action@v0.0.9
 
+      - name: Prioritize action's sccache over bootstrap's
+        run: echo "$(dirname $SCCACHE_PATH)" >> $GITHUB_PATH
+
       - name: Create swap space
         run: |
           sudo fallocate -l 16G /swapfile
@@ -85,14 +88,11 @@ jobs:
           sudo swapon /swapfile
 
       - name: Build Firefox
-        run: |
-          # Ensure the action's sccache is found first (not bootstrap's)
-          export PATH="$(dirname $SCCACHE_PATH):$PATH"
-          cd firefox-src && ./mach build
+        run: cd firefox-src && ./mach build
 
       - name: Show sccache stats
         if: always()
-        run: ${SCCACHE_PATH} --show-stats || true
+        run: sccache --show-stats
 
       - name: Verify build
         run: |
