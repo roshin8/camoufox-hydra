@@ -35,8 +35,11 @@ if not moz_target:
 mozconfig = os.path.join(src_dir, "mozconfig")
 
 # Read existing mozconfig and remove any prior --target line
-with open(mozconfig, "r") as f:
-    lines = [l for l in f.readlines() if "--target=" not in l]
+if os.path.exists(mozconfig):
+    with open(mozconfig, "r") as f:
+        lines = [l for l in f.readlines() if "--target=" not in l]
+else:
+    lines = []
 
 lines.append(f"ac_add_options --target={moz_target}\n")
 
