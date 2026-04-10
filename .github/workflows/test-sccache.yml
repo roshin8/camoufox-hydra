@@ -6,6 +6,8 @@ on:
 jobs:
   test-sccache:
     runs-on: ubuntu-24.04
+    env:
+      SCCACHE_GHA_ENABLED: "true"
     steps:
       - uses: actions/checkout@v4
 
