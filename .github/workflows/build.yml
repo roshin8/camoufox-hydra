@@ -9,12 +9,9 @@ on:
 jobs:
   build:
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         include:
-          - target: linux
-            arch: x86_64
-            os: ubuntu-24.04
           - target: macos
             arch: arm64
             os: macos-14

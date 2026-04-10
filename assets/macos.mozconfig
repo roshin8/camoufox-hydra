@@ -1,0 +1,2 @@
+# Native macOS build — use system Xcode toolchain, no bootstrap download
+ac_add_options --disable-bootstrap
