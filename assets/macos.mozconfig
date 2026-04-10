@@ -1,2 +1,3 @@
-# Native macOS build — use system Xcode toolchain, no bootstrap download
+# Native macOS build — use system Xcode SDK
 ac_add_options --disable-bootstrap
+ac_add_options --with-macos-sdk=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
