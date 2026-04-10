@@ -323,3 +323,18 @@ diff --git a/js/src/vm/DateTime.cpp b/js/src/vm/DateTime.cpp
 +}
 +
  JS_PUBLIC_API void JS::ResetTimeZone() {
+diff --git a/dom/base/nsJSUtils.h b/dom/base/nsJSUtils.h
+--- a/dom/base/nsJSUtils.h
++++ b/dom/base/nsJSUtils.h
+@@ -77,2 +77,3 @@
+   static void ResetTimeZone();
++  static bool SetTimeZoneOverride(const char* timezoneId);
+ 
+diff --git a/dom/base/nsJSUtils.cpp b/dom/base/nsJSUtils.cpp
+--- a/dom/base/nsJSUtils.cpp
++++ b/dom/base/nsJSUtils.cpp
+@@ -155,2 +155,4 @@
+ void nsJSUtils::ResetTimeZone() { JS::ResetTimeZone(); }
++
++bool nsJSUtils::SetTimeZoneOverride(const char* aTz) { return JS::SetTimeZoneOverride(aTz); }
+ 
