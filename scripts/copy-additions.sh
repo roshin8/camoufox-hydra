@@ -3,14 +3,18 @@
 # Copies additions and settings into the Firefox source directory.
 # Must be run from within the source directory.
 # Matches Camoufox's copy-additions.sh flow.
+#
+# Usage: $0 <version> <release> [repo_dir]
+# repo_dir defaults to .. (assumes source dir is inside the repo)
 
-if [ "$#" -ne 2 ]; then
-    echo "Usage: $0 <version> <release>"
+if [ "$#" -lt 2 ]; then
+    echo "Usage: $0 <version> <release> [repo_dir]"
     exit 1
 fi
 
 version="$1"
 release="$2"
+REPO="${3:-..}"
 
 run() {
     echo "$ $1"
@@ -24,19 +28,19 @@ run() {
 # Copy settings into lw/ directory
 run 'mkdir -p lw'
 pushd lw > /dev/null
-run 'cp -v ../../settings/hydra.cfg camoufox.cfg'
-[ -f ../../settings/policies.json ] && run 'cp -v ../../settings/policies.json .'
-[ -f ../../settings/local-settings.js ] && run 'cp -v ../../settings/local-settings.js .'
-[ -f ../../settings/chrome.css ] && run 'cp -v ../../settings/chrome.css .'
-[ -f ../../settings/properties.json ] && run 'cp -v ../../settings/properties.json .'
+run "cp -v '$REPO/settings/hydra.cfg' camoufox.cfg"
+[ -f "$REPO/settings/policies.json" ] && run "cp -v '$REPO/settings/policies.json' ."
+[ -f "$REPO/settings/local-settings.js" ] && run "cp -v '$REPO/settings/local-settings.js' ."
+[ -f "$REPO/settings/chrome.css" ] && run "cp -v '$REPO/settings/chrome.css' ."
+[ -f "$REPO/settings/properties.json" ] && run "cp -v '$REPO/settings/properties.json' ."
 run 'touch moz.build'
 popd > /dev/null
 
 # Copy librewolf pack_vs.py (referenced by build system)
-run 'cp -v ../patches/librewolf/pack_vs.py build/vs/' || true
+run "cp -v '$REPO/patches/librewolf/pack_vs.py' build/vs/" || true
 
 # Copy ALL new files/folders from additions to source
-run 'cp -r ../additions/* .'
+run "cp -r '$REPO/additions/'* ."
 
 # Override the firefox version
 for file in "browser/config/version.txt" "browser/config/version_display.txt"; do
