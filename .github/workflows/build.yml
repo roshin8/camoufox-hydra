@@ -52,8 +52,8 @@ jobs:
 
       - name: Patch and configure
         run: |
-          python3 scripts/fix-mach-logging.py firefox-src
           make dir
+          python3 scripts/fix-mach-logging.py firefox-src
 
       - name: Build
         run: make build

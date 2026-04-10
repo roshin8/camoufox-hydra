@@ -56,8 +56,8 @@ dir:
 	@if [ ! -d $(cf_source_dir) ]; then \
 		make setup; \
 	fi
-	python3 scripts/fix-mach-logging.py $(cf_source_dir)
 	python3 scripts/patch.py $(version) $(release)
+	python3 scripts/fix-mach-logging.py $(cf_source_dir)
 	touch $(cf_source_dir)/_READY
 
 set-target:
