@@ -228,13 +228,15 @@ index 709cd2b90d..af5abb38be 100644
 
  static bool ComputeLocalTime(time_t local, struct tm* ptm) {
    // Neither localtime_s nor localtime_r are required to act as if tzset has
-@@ -257,6 +258,12 @@ js::DateTimeInfo::DateTimeInfo() {
+@@ -257,6 +258,14 @@ js::DateTimeInfo::DateTimeInfo() {
 
  js::DateTimeInfo::~DateTimeInfo() = default;
 
 +js::DateTimeInfo::DateTimeInfo(const char* timezone) : DateTimeInfo() {
 +#if JS_HAS_INTL_API
-+  timeZoneOverride_ = timezone ? std::string(timezone) : std::string();
++  if (timezone) {
++    timeZoneOverride_ = new JS::TimeZoneString(timezone);
++  }
 +#endif
 +}
 +
