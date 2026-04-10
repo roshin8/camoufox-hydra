@@ -8,22 +8,23 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
-        target: [linux, macos]
-        arch: [x86_64, arm64]
-        exclude:
-          - target: macos
-            arch: x86_64
+        include:
           - target: linux
+            arch: x86_64
+            os: ubuntu-24.04
+          - target: macos
             arch: arm64
+            os: macos-14
+    runs-on: ${{ matrix.os }}
     env:
       SCCACHE_GHA_ENABLED: "true"
 
     steps:
       - name: Maximize build space
+        if: runner.os == 'Linux'
         uses: AdityaGarg8/remove-unwanted-software@v4.1
         with:
           remove-dotnet: "true"
@@ -49,7 +50,8 @@ jobs:
         with:
           node-version: "22"
 
-      - name: Set up LLVM 18
+      - name: Set up LLVM 18 (Linux only)
+        if: runner.os == 'Linux'
         run: |
           wget https://apt.llvm.org/llvm.sh
           chmod +x llvm.sh
@@ -62,10 +64,15 @@ jobs:
           curl https://sh.rustup.rs -sSf | bash -s -- -y
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
-      - name: Install dependencies
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y msitools p7zip-full aria2 nasm
+
+      - name: Install dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: brew install aria2 nasm
 
       - name: Set up git identity
         run: |
@@ -88,6 +95,7 @@ jobs:
         run: echo "$(dirname $SCCACHE_PATH)" >> $GITHUB_PATH
 
       - name: Create swap space
+        if: runner.os == 'Linux'
         run: |
           sudo fallocate -l 16G /swapfile
           sudo chmod 600 /swapfile
