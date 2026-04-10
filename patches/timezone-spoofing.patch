@@ -228,32 +228,25 @@ index 709cd2b90d..af5abb38be 100644
 
  static bool ComputeLocalTime(time_t local, struct tm* ptm) {
    // Neither localtime_s nor localtime_r are required to act as if tzset has
-@@ -257,6 +258,14 @@ js::DateTimeInfo::DateTimeInfo() {
+@@ -257,6 +258,12 @@ js::DateTimeInfo::DateTimeInfo() {
 
  js::DateTimeInfo::~DateTimeInfo() = default;
 
 +js::DateTimeInfo::DateTimeInfo(const char* timezone) : DateTimeInfo() {
 +#if JS_HAS_INTL_API
-+  if (timezone) {
-+    timeZoneOverride_ = new JS::TimeZoneString(timezone);
-+  }
++  timeZoneOverride_ = timezone ? std::string(timezone) : std::string();
 +#endif
 +}
 +
  int64_t js::DateTimeInfo::toClampedSeconds(int64_t milliseconds) {
    int64_t seconds = milliseconds / msPerSecond;
    int64_t millis = milliseconds % msPerSecond;
-@@ -587,6 +594,23 @@ JS_PUBLIC_API bool JS::SetTimeZoneOverride(const char* timeZoneId) {
+@@ -587,6 +594,18 @@ JS_PUBLIC_API bool JS::SetTimeZoneOverride(const char* timeZoneId) {
    return true;
  }
 
 +JS_PUBLIC_API bool JS::SetRealmTimeZoneOverride(JSContext* cx, const char* timeZoneId) {
-+  if (!timeZoneId || timeZoneId[0] == '\0') {
-+    return false;
-+  }
-+  // Validate timezone ID by attempting to create a TimeZone object
-+  auto tz = mozilla::intl::TimeZone::TryCreate(mozilla::Some(mozilla::Span(timeZoneId, strlen(timeZoneId))));
-+  if (tz.isErr()) {
++  if (!timeZoneId || !mozilla::intl::TimeZone::IsValidTimeZoneId(timeZoneId)) {
 +    return false;
 +  }
 +  JS::Realm* realm = js::GetContextRealm(cx);
@@ -315,7 +308,6 @@ index a1b2c3d4e5..f6g7h8i9j0 100644
  
    // We no longer need the old inner window.  Start its destruction if
    // its not being reused and clear our reference.
-
 diff --git a/dom/workers/WorkerPrivate.cpp b/dom/workers/WorkerPrivate.cpp
 index c8e44687b7..9a2bae61e7 100644
 --- a/dom/workers/WorkerPrivate.cpp
