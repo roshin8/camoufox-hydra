@@ -27,14 +27,12 @@ run() {
 
 # Copy settings into lw/ directory
 run 'mkdir -p lw'
-pushd lw > /dev/null
-run "cp -v '$REPO/settings/hydra.cfg' camoufox.cfg"
-[ -f "$REPO/settings/policies.json" ] && run "cp -v '$REPO/settings/policies.json' ."
-[ -f "$REPO/settings/local-settings.js" ] && run "cp -v '$REPO/settings/local-settings.js' ."
-[ -f "$REPO/settings/chrome.css" ] && run "cp -v '$REPO/settings/chrome.css' ."
-[ -f "$REPO/settings/properties.json" ] && run "cp -v '$REPO/settings/properties.json' ."
-run 'touch moz.build'
-popd > /dev/null
+run "cp -v $REPO/settings/hydra.cfg lw/camoufox.cfg"
+[ -f "$REPO/settings/policies.json" ] && run "cp -v $REPO/settings/policies.json lw/"
+[ -f "$REPO/settings/local-settings.js" ] && run "cp -v $REPO/settings/local-settings.js lw/"
+[ -f "$REPO/settings/chrome.css" ] && run "cp -v $REPO/settings/chrome.css lw/"
+[ -f "$REPO/settings/properties.json" ] && run "cp -v $REPO/settings/properties.json lw/"
+run 'touch lw/moz.build'
 
 # Copy librewolf pack_vs.py (referenced by build system)
 run "cp -v '$REPO/patches/librewolf/pack_vs.py' build/vs/" || true
