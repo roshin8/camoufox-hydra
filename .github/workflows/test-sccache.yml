@@ -1,0 +1,42 @@
+name: Test sccache
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-sccache:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up LLVM 18
+        run: |
+          wget -q https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh 18
+          sudo apt-get install -y clang-18
+
+      - name: Set up sccache
+        uses: Mozilla-Actions/sccache-action@v0.0.9
+
+      - name: Verify sccache works
+        run: |
+          echo "=== sccache binary ==="
+          which sccache
+          sccache --version
+          echo ""
+          echo "=== SCCACHE_PATH ==="
+          echo $SCCACHE_PATH
+          echo ""
+          echo "=== Server status ==="
+          sccache --show-stats
+          echo ""
+          echo "=== Test compile with sccache ==="
+          echo 'int main() { return 0; }' > /tmp/test.c
+          sccache clang-18 -c /tmp/test.c -o /tmp/test.o
+          echo "Compile 1: OK"
+          sccache clang-18 -c /tmp/test.c -o /tmp/test.o
+          echo "Compile 2 (should be cache hit): OK"
+          echo ""
+          echo "=== Stats after test ==="
+          sccache --show-stats
