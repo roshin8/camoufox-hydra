@@ -91,7 +91,8 @@ jobs:
           cd firefox-src && ./mach build
 
       - name: Show sccache stats
-        run: sccache --show-stats
+        if: always()
+        run: ${SCCACHE_PATH} --show-stats || true
 
       - name: Verify build
         run: |
