@@ -73,7 +73,7 @@ jobs:
         run: make extension
 
       - name: Set up sccache
-        uses: Mozilla-Actions/sccache-action@v0.0.6
+        uses: Mozilla-Actions/sccache-action@v0.0.9
 
       - name: Create swap space
         run: |
@@ -83,7 +83,10 @@ jobs:
           sudo swapon /swapfile
 
       - name: Build Firefox
-        run: cd firefox-src && ./mach build
+        run: |
+          # Ensure the action's sccache is found first (not bootstrap's)
+          export PATH="$(dirname $SCCACHE_PATH):$PATH"
+          cd firefox-src && ./mach build
 
       - name: Show sccache stats
         run: sccache --show-stats
