@@ -304,12 +304,11 @@ diff --git a/dom/base/nsJSUtils.cpp b/dom/base/nsJSUtils.cpp
 diff --git a/js/src/vm/DateTime.cpp b/js/src/vm/DateTime.cpp
 --- a/js/src/vm/DateTime.cpp
 +++ b/js/src/vm/DateTime.cpp
-@@ -40,3 +40,4 @@
+@@ -40,2 +40,3 @@ static bool ComputeLocalTime(time_t local, struct tm* ptm) {
  #include "vm/Realm.h"
 +#include "jspubtd.h"
  
- static bool ComputeLocalTime(time_t local, struct tm* ptm) {
-@@ -596,5 +597,27 @@
+@@ -595,6 +596,28 @@ void js::ResetTimeZoneInternal(ResetTimeZoneMode mode) {
  void js::ResetTimeZoneInternal(ResetTimeZoneMode mode) {
    js::DateTimeInfo::resetTimeZone(mode);
  }
@@ -337,3 +336,5 @@ diff --git a/js/src/vm/DateTime.cpp b/js/src/vm/DateTime.cpp
 +}
 +
  JS_PUBLIC_API void JS::ResetTimeZone() {
+   js::ResetTimeZoneInternal(js::ResetTimeZoneMode::ResetEvenIfOffsetUnchanged);
+
