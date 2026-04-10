@@ -72,6 +72,9 @@ jobs:
       - name: Build extension
         run: make extension
 
+      - name: Set up sccache
+        uses: Mozilla-Actions/sccache-action@v0.0.6
+
       - name: Create swap space
         run: |
           sudo fallocate -l 16G /swapfile
@@ -81,6 +84,9 @@ jobs:
 
       - name: Build Firefox
         run: cd firefox-src && ./mach build
+
+      - name: Show sccache stats
+        run: sccache --show-stats
 
       - name: Verify build
         run: |
