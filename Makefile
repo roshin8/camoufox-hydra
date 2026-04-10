@@ -56,10 +56,11 @@ dir:
 	# Copy base mozconfig and set target
 	cd $(cf_source_dir) && cp -v ../assets/base.mozconfig mozconfig
 	# Apply all patches (sorted by basename, like Camoufox's list_patches)
+	# Fail immediately if any patch fails — don't silently skip
 	cd $(cf_source_dir) && \
 		for p in $$(find ../patches -maxdepth 1 -name '*.patch' | sort -t/ -k3); do \
 			echo "Applying: $$p"; \
-			patch -p1 -i "$$p"; \
+			patch -p1 -i "$$p" || exit 1; \
 		done
 	touch $(cf_source_dir)/_READY
 
