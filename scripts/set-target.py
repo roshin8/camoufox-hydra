@@ -34,6 +34,12 @@ if not moz_target:
 
 mozconfig = os.path.join(src_dir, "mozconfig")
 
+# Create mozconfig from base.mozconfig if it doesn't exist (like patch.py does)
+base_mozconfig = os.path.join(os.path.dirname(src_dir), "assets", "base.mozconfig")
+if not os.path.exists(mozconfig) and os.path.exists(base_mozconfig):
+    import shutil
+    shutil.copy2(base_mozconfig, mozconfig)
+
 # Read existing mozconfig and remove any prior --target line
 if os.path.exists(mozconfig):
     with open(mozconfig, "r") as f:
