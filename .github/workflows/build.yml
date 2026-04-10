@@ -36,7 +36,7 @@ jobs:
       - name: Install dependencies (macOS)
         if: runner.os == 'macOS'
         run: |
-          brew install aria2 nasm lld
+          brew install aria2 nasm lld cbindgen
           echo "$(brew --prefix lld)/bin" >> $GITHUB_PATH
 
       - name: Set up sccache
