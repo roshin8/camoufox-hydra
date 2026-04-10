@@ -244,8 +244,9 @@ if __name__ == "__main__":
     _update_rustup(TARGET)
 
     # Check if the folder exists
-    if not os.path.exists(f'camoufox-{VERSION}-{RELEASE}/configure.py'):
-        sys.stderr.write('error: folder doesn\'t look like a Firefox folder.')
+    src_dir = find_src_dir('.', VERSION, RELEASE)
+    if not os.path.exists(os.path.join(src_dir, 'configure.py')):
+        sys.stderr.write(f'error: {src_dir} doesn\'t look like a Firefox folder.')
         sys.exit(1)
 
     # Apply the patches
