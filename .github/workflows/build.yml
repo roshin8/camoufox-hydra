@@ -82,7 +82,9 @@ jobs:
       - name: Setup and bootstrap
         run: |
           make setup-minimal
-          make mozbootstrap
+          if [ "${{ runner.os }}" = "Linux" ]; then
+            make mozbootstrap
+          fi
           mkdir -p dist
 
       - name: Set up sccache
