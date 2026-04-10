@@ -11,10 +11,12 @@ jobs:
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        include:
-          - target: linux
-            arch: x86_64
+        target: [linux, macos]
+        arch: [x86_64, arm64]
+        exclude:
           - target: macos
+            arch: x86_64
+          - target: linux
             arch: arm64
     env:
       SCCACHE_GHA_ENABLED: "true"
@@ -74,22 +76,14 @@ jobs:
           git config --global user.email "ci@camoufox-hydra"
           git config --global user.name "Camoufox Hydra CI"
 
-      # Matches Camoufox: fetch, setup-minimal, mozbootstrap
       - name: Fetch source
         run: make fetch
 
-      - name: Setup source
-        run: make setup-minimal
-
-      - name: Bootstrap build environment
-        run: make mozbootstrap
-
-      # Fix mach logging bug then apply patches
-      - name: Prepare and patch
-        run: BUILD_TARGET=${{ matrix.target }},${{ matrix.arch }} make dir
-
-      - name: Build extension
-        run: make extension
+      - name: Setup and bootstrap
+        run: |
+          make setup-minimal
+          make mozbootstrap
+          mkdir -p dist
 
       - name: Set up sccache
         uses: Mozilla-Actions/sccache-action@v0.0.9
@@ -105,19 +99,11 @@ jobs:
           sudo swapon /swapfile
 
       - name: Build
-        run: cd firefox-src && ./mach build
+        run: python3 ./multibuild.py --target ${{ matrix.target }} --arch ${{ matrix.arch }}
 
       - name: Show sccache stats
         if: always()
         run: sccache --show-stats || true
-
-      - name: Verify build
-        run: |
-          ls -la firefox-src/obj-*/dist/bin/camoufox* || true
-          grep "setCanvasSeed" firefox-src/dom/webidl/Window.webidl && echo "C++ API: FOUND" || echo "C++ API: NOT FOUND"
-
-      - name: Package
-        run: python3 multibuild.py --target ${{ matrix.target }} --arch ${{ matrix.arch }} 2>&1 | tail -20 || true
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
