@@ -84,6 +84,9 @@ package-macos:
 package-windows:
 	python3 scripts/package.py windows --version $(version) --release $(release) --arch $(_ARGS)
 
+generate-assets-car:
+	bash scripts/generate-assets-car.sh
+
 clean:
 	rm -rf $(cf_source_dir)/obj-*
 	rm -rf extension/dist
