@@ -1,3 +1,2 @@
-# Native macOS build — use system Xcode SDK
-ac_add_options --disable-bootstrap
+# Native macOS build — use system SDK, bootstrap provides clang + lld
 ac_add_options --with-macos-sdk=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk
