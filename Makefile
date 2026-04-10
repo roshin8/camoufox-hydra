@@ -57,17 +57,11 @@ dir:
 		make setup; \
 	fi
 	python3 scripts/fix-mach-logging.py $(cf_source_dir)
-	cd $(cf_source_dir) && cp -v ../assets/base.mozconfig mozconfig
-	make set-target
-	cd $(cf_source_dir) && \
-		for p in $$(find ../patches -maxdepth 1 -name '*.patch' | sort -t/ -k3); do \
-			echo "Applying: $$p"; \
-			patch -p1 -i "$$p" || exit 1; \
-		done
+	python3 scripts/patch.py $(version) $(release)
 	touch $(cf_source_dir)/_READY
 
 set-target:
-	@python3 scripts/set-target.py $(cf_source_dir)
+	python3 scripts/patch.py $(version) $(release) --mozconfig-only
 
 extension:
 	cd extension && npm ci && npm run build:prod
