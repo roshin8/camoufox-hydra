@@ -53,8 +53,24 @@ dir:
 	fi
 	# Fix mach logging bug
 	python3 scripts/fix-mach-logging.py $(cf_source_dir)
-	# Copy base mozconfig and set target
+	# Copy base mozconfig and set cross-compile target if BUILD_TARGET is set
 	cd $(cf_source_dir) && cp -v ../assets/base.mozconfig mozconfig
+	@if [ -n "$$BUILD_TARGET" ]; then \
+		target=$$(echo $$BUILD_TARGET | cut -d, -f1); \
+		arch=$$(echo $$BUILD_TARGET | cut -d, -f2); \
+		case "$$target,$$arch" in \
+			linux,x86_64) moz_target="x86_64-pc-linux-gnu" ;; \
+			linux,arm64) moz_target="aarch64-unknown-linux-gnu" ;; \
+			linux,i686) moz_target="i686-pc-linux-gnu" ;; \
+			macos,x86_64) moz_target="x86_64-apple-darwin" ;; \
+			macos,arm64) moz_target="aarch64-apple-darwin" ;; \
+			windows,x86_64) moz_target="x86_64-pc-mingw32" ;; \
+			windows,i686) moz_target="i686-pc-mingw32" ;; \
+			*) echo "Unknown target: $$BUILD_TARGET"; exit 1 ;; \
+		esac; \
+		echo "ac_add_options --target=$$moz_target" >> $(cf_source_dir)/mozconfig; \
+		echo "Build target: $$moz_target"; \
+	fi
 	# Apply all patches (sorted by basename, like Camoufox's list_patches)
 	# Fail immediately if any patch fails — don't silently skip
 	cd $(cf_source_dir) && \
