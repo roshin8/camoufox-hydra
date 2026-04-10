@@ -35,7 +35,9 @@ jobs:
 
       - name: Install dependencies (macOS)
         if: runner.os == 'macOS'
-        run: brew install aria2 nasm
+        run: |
+          brew install aria2 nasm lld
+          echo "$(brew --prefix lld)/bin" >> $GITHUB_PATH
 
       - name: Set up sccache
         uses: Mozilla-Actions/sccache-action@v0.0.9
@@ -43,16 +45,15 @@ jobs:
       - name: Prioritize action's sccache
         run: echo "$(dirname $SCCACHE_PATH)" >> $GITHUB_PATH
 
-      - name: Fetch source
-        run: make fetch
+      - name: Fetch and setup
+        run: |
+          make fetch
+          make setup-minimal
 
-      - name: Setup source
-        run: make setup-minimal
-
-      - name: Prepare and patch
+      - name: Patch and configure
         run: |
           python3 scripts/fix-mach-logging.py firefox-src
-          BUILD_TARGET=${{ matrix.target }},${{ matrix.arch }} make dir
+          make dir
 
       - name: Build
         run: make build
@@ -61,18 +62,14 @@ jobs:
         if: always()
         run: sccache --show-stats || true
 
-      - name: Verify build
+      - name: Verify
         run: |
           ls -la firefox-src/obj-*/dist/bin/camoufox* || true
           grep "setCanvasSeed" firefox-src/dom/webidl/Window.webidl && echo "C++ API: FOUND" || echo "C++ API: NOT FOUND"
-
-      - name: Package
-        run: |
-          mkdir -p dist
-          cp -r firefox-src/obj-*/dist/bin/* dist/ 2>/dev/null || true
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: camoufox-hydra-${{ matrix.target }}-${{ matrix.arch }}
-          path: dist/*
+          path: |
+            firefox-src/obj-*/dist/bin/
