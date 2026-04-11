@@ -7,21 +7,72 @@ on:
       - "v*"
 
 jobs:
-  build:
-    strategy:
-      fail-fast: true
-      matrix:
-        include:
-          - target: macos
-            arch: arm64
-            os: macos-15
-    runs-on: ${{ matrix.os }}
+  build-macos:
+    runs-on: macos-15
     env:
       SCCACHE_GHA_ENABLED: "true"
+      BUILD_TARGET: macos,arm64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Rust
+        run: |
+          curl https://sh.rustup.rs -sSf | bash -s -- -y
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: Install dependencies
+        run: |
+          brew install aria2 nasm lld cbindgen
+          echo "$(brew --prefix lld)/bin" >> $GITHUB_PATH
+
+      - name: Set up sccache
+        uses: Mozilla-Actions/sccache-action@v0.0.9
+
+      - name: Prioritize action's sccache
+        run: echo "$(dirname $SCCACHE_PATH)" >> $GITHUB_PATH
+
+      - name: Fetch and setup
+        run: |
+          make fetch
+          make setup-minimal
+
+      - name: Patch and configure
+        run: |
+          make dir
+          python3 scripts/fix-mach-logging.py firefox-src
+
+      - name: Build
+        run: make build
+
+      - name: Show sccache stats
+        if: always()
+        run: sccache --show-stats || true
+
+      - name: Verify
+        run: |
+          ls -la firefox-src/obj-*/dist/bin/camoufox* || true
+          grep "setCanvasSeed" firefox-src/dom/webidl/Window.webidl && echo "C++ API: FOUND" || echo "C++ API: NOT FOUND"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: camoufox-hydra-macos-arm64
+          path: firefox-src/obj-*/dist/bin/
+
+  build-linux:
+    runs-on: ubuntu-24.04
+    env:
+      SCCACHE_GHA_ENABLED: "true"
+      BUILD_TARGET: linux,x86_64
 
     steps:
       - name: Maximize build space
-        if: runner.os == 'Linux'
         uses: AdityaGarg8/remove-unwanted-software@v4.1
         with:
           remove-dotnet: "true"
@@ -34,21 +85,13 @@ jobs:
           verbose: "false"
 
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-
-      - name: Set up LLVM 18 (Linux only)
-        if: runner.os == 'Linux'
+      - name: Set up LLVM 18
         run: |
           wget https://apt.llvm.org/llvm.sh
           chmod +x llvm.sh
@@ -61,38 +104,34 @@ jobs:
           curl https://sh.rustup.rs -sSf | bash -s -- -y
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
-      - name: Install dependencies (Linux)
-        if: runner.os == 'Linux'
+      - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y msitools p7zip-full aria2 nasm
-
-      - name: Install dependencies (macOS)
-        if: runner.os == 'macOS'
-        run: brew install aria2 nasm
 
       - name: Set up git identity
         run: |
           git config --global user.email "ci@camoufox-hydra"
           git config --global user.name "Camoufox Hydra CI"
 
-      - name: Fetch source
-        run: make fetch
-
-      - name: Setup and bootstrap
-        run: |
-          make setup-minimal
-          make mozbootstrap || true
-          mkdir -p dist
-
       - name: Set up sccache
         uses: Mozilla-Actions/sccache-action@v0.0.9
 
-      - name: Prioritize action's sccache over bootstrap's
+      - name: Prioritize action's sccache
         run: echo "$(dirname $SCCACHE_PATH)" >> $GITHUB_PATH
 
+      - name: Fetch and setup
+        run: |
+          make fetch
+          make setup-minimal
+          make mozbootstrap
+
+      - name: Patch and configure
+        run: |
+          make dir
+          python3 scripts/fix-mach-logging.py firefox-src
+
       - name: Create swap space
-        if: runner.os == 'Linux'
         run: |
           sudo fallocate -l 16G /swapfile
           sudo chmod 600 /swapfile
@@ -100,20 +139,25 @@ jobs:
           sudo swapon /swapfile
 
       - name: Build
-        run: python3 ./multibuild.py --target ${{ matrix.target }} --arch ${{ matrix.arch }}
+        run: make build
 
       - name: Show sccache stats
         if: always()
         run: sccache --show-stats || true
 
+      - name: Verify
+        run: |
+          ls -la firefox-src/obj-*/dist/bin/camoufox* || true
+          grep "setCanvasSeed" firefox-src/dom/webidl/Window.webidl && echo "C++ API: FOUND" || echo "C++ API: NOT FOUND"
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: camoufox-hydra-${{ matrix.target }}-${{ matrix.arch }}
-          path: dist/*
+          name: camoufox-hydra-linux-x86_64
+          path: firefox-src/obj-*/dist/bin/
 
   release:
-    needs: build
+    needs: [build-macos, build-linux]
     if: startsWith(github.ref, 'refs/tags/')
     permissions:
       contents: write
