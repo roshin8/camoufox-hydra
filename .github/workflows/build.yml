@@ -158,11 +158,14 @@ jobs:
           ls -la firefox-src/obj-*/dist/bin/camoufox* || true
           grep "setCanvasSeed" firefox-src/dom/webidl/Window.webidl && echo "C++ API: FOUND" || echo "C++ API: NOT FOUND"
 
+      - name: Package
+        run: cd firefox-src && ./mach package
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: camoufox-hydra-linux-x86_64
-          path: firefox-src/obj-*/dist/bin/
+          path: firefox-src/obj-*/dist/*.tar.bz2
 
   release:
     needs: [build-macos, build-linux]
