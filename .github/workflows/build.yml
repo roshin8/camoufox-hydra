@@ -46,6 +46,7 @@ jobs:
         run: |
           make dir
           python3 scripts/fix-mach-logging.py firefox-src
+          echo "ac_add_options --with-ccache=$SCCACHE_PATH" >> firefox-src/mozconfig
 
       - name: Build
         run: make build
@@ -107,9 +108,10 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y msitools p7zip-full aria2 nasm cbindgen \
+          sudo apt-get install -y msitools p7zip-full aria2 nasm \
             libasound2-dev libgtk-3-dev libdbus-glib-1-dev libpulse-dev \
             libx11-xcb-dev libxt-dev libxrandr-dev libxcomposite-dev libxdamage-dev
+          cargo install cbindgen
 
       - name: Set up git identity
         run: |
@@ -131,6 +133,7 @@ jobs:
         run: |
           make dir
           python3 scripts/fix-mach-logging.py firefox-src
+          echo "ac_add_options --with-ccache=$SCCACHE_PATH" >> firefox-src/mozconfig
 
       - name: Create swap space
         run: |

@@ -35,4 +35,5 @@ mk_add_options MOZ_AUTOMATION_INSTALLER=0
 
 # ac_add_options --enable-lto=cross
 
-ac_add_options --with-ccache=sccache
+# sccache path set by CI via SCCACHE_PATH environment variable
+# Don't use --with-ccache=sccache here — it triggers bootstrap download
