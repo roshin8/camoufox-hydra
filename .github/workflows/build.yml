@@ -61,7 +61,19 @@ jobs:
           grep "setCanvasSeed" firefox-src/dom/webidl/Window.webidl && echo "C++ API: FOUND" || echo "C++ API: NOT FOUND"
 
       - name: Package
-        run: cd firefox-src && ./mach package
+        run: |
+          cd firefox-src && ./mach package
+          # Codesign so macOS doesn't block it
+          APP_PATH=$(find obj-*/dist -name "*.app" -maxdepth 2 | head -1)
+          if [ -n "$APP_PATH" ]; then
+            codesign --force --deep --sign - "$APP_PATH"
+          fi
+          # Convert bzip2 DMG to zlib DMG (Finder can open zlib, not bzip2)
+          DMG_PATH=$(find obj-*/dist -name "*.dmg" -maxdepth 1 | head -1)
+          if [ -n "$DMG_PATH" ]; then
+            hdiutil convert "$DMG_PATH" -format UDZO -o "${DMG_PATH%.dmg}-compat.dmg"
+            mv "${DMG_PATH%.dmg}-compat.dmg" "$DMG_PATH"
+          fi
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
