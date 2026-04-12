@@ -26,15 +26,18 @@ ac_add_options --enable-bootstrap
 
 export MOZ_REQUIRE_SIGNING=
 
-ac_add_options --disable-crashreporter
-ac_add_options --disable-normandy
-
 mk_add_options MOZ_CRASHREPORTER=0
 mk_add_options MOZ_DATA_REPORTING=0
 mk_add_options MOZ_SERVICES_HEALTHREPORT=0
 mk_add_options MOZ_TELEMETRY_REPORTING=0
+mk_add_options MOZ_NORMANDY=0
 mk_add_options MOZ_INSTALLER=0
 mk_add_options MOZ_AUTOMATION_INSTALLER=0
+
+export MOZ_NORMANDY=0
+export MOZ_DATA_REPORTING=0
+export MOZ_TELEMETRY_REPORTING=0
+export MOZ_SERVICES_HEALTHREPORT=0
 
 # sccache path set by CI via SCCACHE_PATH environment variable
 # Don't use --with-ccache=sccache here — it triggers bootstrap download
