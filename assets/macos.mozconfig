@@ -1,3 +1,8 @@
 # Native macOS build
 ac_add_options --disable-bootstrap
 ac_add_options --without-wasm-sandboxed-libraries
+
+# Ensure these match Camoufox's build flags
+# (--disable-bootstrap can cause them to default differently)
+mk_add_options MOZ_DATA_REPORTING=0
+mk_add_options MOZ_NORMANDY=0

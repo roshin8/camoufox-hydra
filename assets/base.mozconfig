@@ -37,3 +37,4 @@ mk_add_options MOZ_AUTOMATION_INSTALLER=0
 
 # sccache path set by CI via SCCACHE_PATH environment variable
 # Don't use --with-ccache=sccache here — it triggers bootstrap download
+mk_add_options MOZ_NORMANDY=0
