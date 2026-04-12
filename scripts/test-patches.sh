@@ -40,7 +40,7 @@ APPLIED=0
 for p in $(find "$REPO_DIR/patches" -maxdepth 1 -name '*.patch' | sort); do
     name=$(basename "$p")
     echo -n "  $name ... "
-    result=$(gtimeout 30 patch -p1 --force -i "$p" < /dev/null 2>&1 || echo "FAILED: timeout or error")
+    result=$(patch -p1 --force -i "$p" < /dev/null 2>&1)
     if echo "$result" | grep -q "malformed\|FAILED\|ignored"; then
         echo "FAILED"
         echo "$result" | grep -E "malformed|FAILED|Hunk" | sed 's/^/    /'

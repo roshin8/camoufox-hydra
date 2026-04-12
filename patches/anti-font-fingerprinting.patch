@@ -1008,7 +1008,7 @@ index de9a9661a1..f878bdb36c 100644
    if (aLength == 0) {
      return MakeEmptyTextRun(aParams, aFlags, aFlags2);
    }
-@@ -2530,7 +2547,12 @@ already_AddRefed<gfxTextRun> gfxFontGroup::MakeTextRun(
+@@ -2530,8 +2547,13 @@ already_AddRefed<gfxTextRun> gfxFontGroup::MakeTextRun(
      return MakeBlankTextRun(aString, aLength, aParams, aFlags, aFlags2);
    }
  
