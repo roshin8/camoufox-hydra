@@ -8,7 +8,7 @@ on:
 
 jobs:
   build-macos:
-    runs-on: macos-15
+    runs-on: macos-26
     env:
       SCCACHE_GHA_ENABLED: "true"
       BUILD_TARGET: macos,arm64
