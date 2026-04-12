@@ -37,7 +37,7 @@ echo ""
 echo "=== Applying patches ==="
 FAILED=0
 APPLIED=0
-for p in $(find "$REPO_DIR/patches" -maxdepth 1 -name '*.patch' | sort); do
+for p in $(find "$REPO_DIR/patches" -name '*.patch' | sort); do
     name=$(basename "$p")
     echo -n "  $name ... "
     result=$(patch -p1 --force -i "$p" < /dev/null 2>&1)
