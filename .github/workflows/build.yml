@@ -63,14 +63,9 @@ jobs:
       - name: Package
         run: |
           cd firefox-src && ./mach package
-          # Find the built DMG and app
-          DMG_PATH=$(find obj-*/dist -name "*.dmg" -maxdepth 1 | head -1)
+          # Find the app built by mach package
           APP_PATH=$(find obj-*/dist -name "*.app" -maxdepth 2 | head -1)
-          # Codesign the app
-          if [ -n "$APP_PATH" ]; then
-            codesign --force --deep --sign - "$APP_PATH"
-          fi
-          # Create a proper drag-to-Applications DMG
+          # Create drag-to-Applications DMG (don't re-codesign — linker already signed it)
           mkdir -p /tmp/dmg-staging
           cp -R "$APP_PATH" /tmp/dmg-staging/
           ln -s /Applications /tmp/dmg-staging/Applications
