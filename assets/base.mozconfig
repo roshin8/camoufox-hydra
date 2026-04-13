@@ -34,3 +34,6 @@ mk_add_options MOZ_INSTALLER=0
 mk_add_options MOZ_AUTOMATION_INSTALLER=0
 
 # ac_add_options --enable-lto=cross
+
+# sccache path set by CI via --with-ccache=$SCCACHE_PATH appended in workflow
+# Don't add --with-ccache=sccache here — it triggers bootstrap to download its own sccache
