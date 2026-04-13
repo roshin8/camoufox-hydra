@@ -63,18 +63,11 @@ jobs:
       - name: Package
         run: |
           cd firefox-src && ./mach package
-          # Find the app built by mach package
-          APP_PATH=$(find obj-*/dist -name "*.app" -maxdepth 2 | head -1)
-          # Create drag-to-Applications DMG (don't re-codesign — linker already signed it)
-          mkdir -p /tmp/dmg-staging
-          cp -R "$APP_PATH" /tmp/dmg-staging/
-          ln -s /Applications /tmp/dmg-staging/Applications
-          hdiutil create -volname "Camoufox" \
-            -srcfolder /tmp/dmg-staging \
-            -ov -format UDZO \
-            /tmp/Camoufox.dmg
+          # mach package creates a branded DMG with background + icon layout
+          # Convert from bzip2 to zlib so Finder can double-click it
+          DMG_PATH=$(find obj-*/dist -name "*.dmg" -maxdepth 1 | head -1)
           mkdir -p ../dist
-          mv /tmp/Camoufox.dmg ../dist/
+          hdiutil convert "$DMG_PATH" -format UDZO -o ../dist/Camoufox.dmg
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
