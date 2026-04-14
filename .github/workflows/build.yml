@@ -67,20 +67,23 @@ jobs:
           DMG_PATH=$(find obj-*/dist -name "*.dmg" -maxdepth 1 | head -1)
           hdiutil attach "$DMG_PATH" -mountpoint /tmp/mach-dmg -nobrowse
           # Copy app and ad-hoc codesign (gives "Open Anyway" option instead of "damaged")
-          mkdir -p /tmp/app-staging
-          cp -R /tmp/mach-dmg/Camoufox.app /tmp/app-staging/
-          codesign --force --deep --sign - /tmp/app-staging/Camoufox.app
-          # Zip it
-          mkdir -p ../dist
-          cd /tmp/app-staging
-          zip -r -y $GITHUB_WORKSPACE/dist/Cloakfox-macos-arm64.zip Camoufox.app
+          mkdir -p /tmp/dmg-staging
+          cp -R /tmp/mach-dmg/Camoufox.app /tmp/dmg-staging/
+          codesign --force --deep --sign - /tmp/dmg-staging/Camoufox.app
           hdiutil detach /tmp/mach-dmg
+          # Create branded DMG with Applications shortcut
+          ln -s /Applications /tmp/dmg-staging/Applications
+          mkdir -p ../dist
+          hdiutil create -volname "Cloakfox" \
+            -srcfolder /tmp/dmg-staging \
+            -ov -format UDZO \
+            ../dist/Cloakfox-macos-arm64.dmg
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: cloakfox-macos-arm64
-          path: dist/Cloakfox-macos-arm64.zip
+          path: dist/Cloakfox-macos-arm64.dmg
 
   build-linux:
     runs-on: ubuntu-24.04
