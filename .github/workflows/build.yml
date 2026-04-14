@@ -63,13 +63,17 @@ jobs:
       - name: Package
         run: |
           cd firefox-src && ./mach package
-          # Extract app from mach package DMG and zip it (same as Camoufox)
+          # Extract app from mach package DMG
           DMG_PATH=$(find obj-*/dist -name "*.dmg" -maxdepth 1 | head -1)
           hdiutil attach "$DMG_PATH" -mountpoint /tmp/mach-dmg -nobrowse
+          # Copy app and ad-hoc codesign (gives "Open Anyway" option instead of "damaged")
+          mkdir -p /tmp/app-staging
+          cp -R /tmp/mach-dmg/Camoufox.app /tmp/app-staging/
+          codesign --force --deep --sign - /tmp/app-staging/Camoufox.app
+          # Zip it
           mkdir -p ../dist
-          cd /tmp/mach-dmg
-          zip -r -y /tmp/Cloakfox-macos-arm64.zip Camoufox.app
-          mv /tmp/Cloakfox-macos-arm64.zip $GITHUB_WORKSPACE/dist/
+          cd /tmp/app-staging
+          zip -r -y $GITHUB_WORKSPACE/dist/Cloakfox-macos-arm64.zip Camoufox.app
           hdiutil detach /tmp/mach-dmg
 
       - name: Upload artifacts
