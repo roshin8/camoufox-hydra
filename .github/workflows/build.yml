@@ -28,7 +28,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          brew install aria2 nasm lld cbindgen
+          brew install aria2 nasm lld cbindgen create-dmg
           echo "$(brew --prefix lld)/bin" >> $GITHUB_PATH
 
       - name: Set up sccache
@@ -66,18 +66,29 @@ jobs:
           # Extract app from mach package DMG
           DMG_PATH=$(find obj-*/dist -name "*.dmg" -maxdepth 1 | head -1)
           hdiutil attach "$DMG_PATH" -mountpoint /tmp/mach-dmg -nobrowse
-          # Copy app and ad-hoc codesign (gives "Open Anyway" option instead of "damaged")
+          # Copy app, strip extended attributes, and ad-hoc codesign
           mkdir -p /tmp/dmg-staging
           cp -R /tmp/mach-dmg/Camoufox.app /tmp/dmg-staging/
+          xattr -cr /tmp/dmg-staging/Camoufox.app
           codesign --force --deep --sign - /tmp/dmg-staging/Camoufox.app
           hdiutil detach /tmp/mach-dmg
-          # Create branded DMG with Applications shortcut
-          ln -s /Applications /tmp/dmg-staging/Applications
+          # Create branded DMG with background, icon positioning, and Applications shortcut
           mkdir -p ../dist
-          hdiutil create -volname "Cloakfox" \
-            -srcfolder /tmp/dmg-staging \
-            -ov -format UDZO \
-            ../dist/Cloakfox-macos-arm64.dmg
+          create-dmg \
+            --volname "Cloakfox" \
+            --volicon "../additions/browser/branding/camoufox/firefox.icns" \
+            --background "../additions/browser/branding/camoufox/background.png" \
+            --window-pos 200 120 \
+            --window-size 660 400 \
+            --icon-size 128 \
+            --text-size 12 \
+            --icon "Camoufox.app" 175 200 \
+            --app-drop-link 485 200 \
+            --hide-extension "Camoufox.app" \
+            --no-internet-enable \
+            --format UDZO \
+            ../dist/Cloakfox-macos-arm64.dmg \
+            /tmp/dmg-staging
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
