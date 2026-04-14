@@ -63,23 +63,20 @@ jobs:
       - name: Package
         run: |
           cd firefox-src && ./mach package
-          # Find the app from mach package output
-          APP_PATH=$(find obj-*/dist -name "*.app" -maxdepth 2 | head -1)
-          # Create DMG with UDZO (Finder-compatible) preserving code signatures
-          mkdir -p /tmp/dmg-staging
-          cp -R "$APP_PATH" /tmp/dmg-staging/
-          ln -s /Applications /tmp/dmg-staging/Applications
+          # Extract app from mach package DMG and zip it (same as Camoufox)
+          DMG_PATH=$(find obj-*/dist -name "*.dmg" -maxdepth 1 | head -1)
+          hdiutil attach "$DMG_PATH" -mountpoint /tmp/mach-dmg -nobrowse
           mkdir -p ../dist
-          hdiutil create -volname "Camoufox" \
-            -srcfolder /tmp/dmg-staging \
-            -ov -format UDZO \
-            ../dist/Camoufox.dmg
+          cd /tmp/mach-dmg
+          zip -r -y /tmp/Cloakfox-macos-arm64.zip Camoufox.app
+          mv /tmp/Cloakfox-macos-arm64.zip $GITHUB_WORKSPACE/dist/
+          hdiutil detach /tmp/mach-dmg
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: camoufox-hydra-macos-arm64
-          path: dist/Camoufox.dmg
+          name: cloakfox-macos-arm64
+          path: dist/Cloakfox-macos-arm64.zip
 
   build-linux:
     runs-on: ubuntu-24.04
